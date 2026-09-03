@@ -1,0 +1,42 @@
+{
+  "name": "booking-system",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"npm run server:dev\" \"npm run client:dev\"",
+    "server:dev": "nodemon --watch backend backend/server.js",
+    "client:dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "server": "node backend/server.js",
+    "test": "cross-env ALLOW_PG_MEM=false vitest run",
+    "test:unit": "cross-env ALLOW_PG_MEM=false vitest run",
+    "test:integration": "node -e \"if (!process.env.DATABASE_URL) { console.error('DATABASE_URL is required for integration tests.'); process.exit(1); }\" && vitest run",
+    "db:migrate": "node backend/db/runMigrations.js",
+    "db:seed": "node backend/db/seed.js",
+    "db:reset": "node backend/db/reset.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.1",
+    "express": "^4.21.1",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.3.0",
+    "pg": "^8.23.0",
+    "pg-mem": "^3.0.14",
+    "uuid": "^11.0.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.3",
+    "concurrently": "^9.1.0",
+    "cross-env": "^10.1.0",
+    "nodemon": "^3.1.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.28.0",
+    "supertest": "^7.0.0",
+    "vite": "^5.4.10",
+    "vitest": "^2.1.5"
+  }
+}
