@@ -1,5 +1,9 @@
-import 'dotenv/config';
 import pg from 'pg';
+import dotenv from 'dotenv';
+
+// This module is imported before app.js can run dotenv.config(), so load the
+// project environment here before reading DATABASE_URL.
+dotenv.config();
 
 const { Pool } = pg;
 

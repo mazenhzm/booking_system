@@ -1,7 +1,7 @@
 import express from 'express';
 import { randomUUID } from 'crypto';
 import { getDatabase, sqlAll, sqlGet, sqlRun, transaction } from '../db/database.js';
-import { requirePermission, requireRole } from '../middleware/authMiddleware.js';
+import { requireRole } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -84,7 +84,7 @@ const ensureNoConflict = async (client, decorationId, eventDate, startTime, endT
   return result.rows.length === 0;
 };
 
-router.get('/', requirePermission('bookings:read'), async (req, res) => {
+router.get('/', async (req, res) => {
   const rows = await sqlAll('SELECT * FROM bookings ORDER BY created_at DESC');
   return res.json({ bookings: rows });
 });
@@ -221,34 +221,7 @@ router.patch('/:id/confirm', requireRole('Super Admin', 'Manager'), async (req, 
   return res.json({ booking: updated });
 });
 
-router.patch('/:id/status', requireRole('Super Admin', 'Manager', 'Booking Employee', 'Installation Employee'), async (req, res) => {
-  const { status } = req.body;
-  if (!status) {
-    return res.status(400).json({ message: 'Status is required.' });
-  }
-
-  const existing = await getBookingById(req.params.id);
-  if (!existing) {
-    return res.status(404).json({ message: 'Booking not found.' });
-  }
-
-  await sqlRun('UPDATE bookings SET booking_status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [status, req.params.id]);
-  const updated = await getBookingById(req.params.id);
-  return res.json({ booking: updated });
-});
-
-router.delete('/:id', requireRole('Super Admin', 'Manager'), async (req, res) => {
-  const existing = await getBookingById(req.params.id);
-  if (!existing) {
-    return res.status(404).json({ message: 'Booking not found.' });
-  }
-
-  await sqlRun('DELETE FROM booking_services WHERE booking_id = ?', [req.params.id]);
-  await sqlRun('DELETE FROM bookings WHERE id = ?', [req.params.id]);
-  return res.json({ message: 'Booking deleted successfully.' });
-});
-
-router.get('/:id', requirePermission('bookings:read'), async (req, res) => {
+router.get('/:id', async (req, res) => {
   const booking = await getBookingById(req.params.id);
   if (!booking) {
     return res.status(404).json({ message: 'Booking not found.' });

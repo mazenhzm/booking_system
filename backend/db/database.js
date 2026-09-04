@@ -1,10 +1,19 @@
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
-import { randomUUID } from 'crypto';
 import { newDb } from 'pg-mem';
 import { pool, transaction as pgTransaction } from './postgres.js';
 
 dotenv.config();
+
+if (process.env.NODE_ENV === 'test') {
+  const testDatabaseUrl = process.env.TEST_DATABASE_URL;
+  const databaseUrl = process.env.DATABASE_URL;
+  const databaseName = databaseUrl ? new URL(databaseUrl).pathname.replace(/^\//, '') : '';
+
+  if (!testDatabaseUrl || databaseUrl !== testDatabaseUrl || databaseName === 'booking_system' || !databaseName.endsWith('_test')) {
+    throw new Error('Tests require TEST_DATABASE_URL and may only use a database ending in _test.');
+  }
+}
 
 const isProduction = (process.env.NODE_ENV || 'development') === 'production';
 const isPgMemExplicitlyEnabled = process.env.ALLOW_PG_MEM === 'true';
@@ -19,15 +28,6 @@ if (!useRealDatabase && !isPgMemExplicitlyEnabled) {
 }
 
 const memoryDb = !useRealDatabase && isPgMemExplicitlyEnabled ? newDb({ autoCreateForeignKeyIndices: true }) : null;
-if (memoryDb) {
-  memoryDb.public.registerFunction({
-    name: 'gen_random_uuid',
-    args: [],
-    returns: 'uuid',
-    implementation: () => randomUUID(),
-  });
-}
-
 const memoryPgAdapter = memoryDb ? memoryDb.adapters.createPg() : null;
 const memoryPool = memoryPgAdapter ? new memoryPgAdapter.Pool() : null;
 
@@ -148,7 +148,7 @@ const bootstrap = async () => {
       full_name TEXT NOT NULL,
       password_hash TEXT NOT NULL,
       role TEXT NOT NULL,
-      is_active BOOLEAN DEFAULT true,
+      is_active INTEGER DEFAULT 1,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT DEFAULT CURRENT_TIMESTAMP
     )`,
@@ -162,17 +162,6 @@ const bootstrap = async () => {
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT DEFAULT CURRENT_TIMESTAMP
     )`,
-    `CREATE TABLE IF NOT EXISTS employees (
-      id TEXT PRIMARY KEY,
-      user_id TEXT,
-      full_name TEXT NOT NULL,
-      phone TEXT,
-      employee_type TEXT NOT NULL,
-      gender TEXT,
-      status TEXT DEFAULT 'Active',
-      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-    )`,
     `CREATE TABLE IF NOT EXISTS decorations (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
@@ -181,7 +170,7 @@ const bootstrap = async () => {
       base_price REAL DEFAULT 0,
       price REAL DEFAULT 0,
       status TEXT DEFAULT 'Available',
-      availability BOOLEAN DEFAULT true,
+      availability INTEGER DEFAULT 1,
       notes TEXT,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT DEFAULT CURRENT_TIMESTAMP
@@ -280,8 +269,7 @@ const bootstrap = async () => {
       installation_time TEXT,
       status TEXT DEFAULT 'Pending',
       notes TEXT,
-      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
     )`,
     `CREATE TABLE IF NOT EXISTS notifications (
       id TEXT PRIMARY KEY,
@@ -289,7 +277,7 @@ const bootstrap = async () => {
       title TEXT NOT NULL,
       message TEXT NOT NULL,
       type TEXT DEFAULT 'info',
-      is_read BOOLEAN DEFAULT false,
+      is_read INTEGER DEFAULT 0,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     )`,
     `CREATE TABLE IF NOT EXISTS audit_logs (

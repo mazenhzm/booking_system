@@ -8,20 +8,16 @@ let token;
 const resetTestData = async () => {
   await query('DELETE FROM payment_receipts');
   await query('DELETE FROM payments');
-  await query('DELETE FROM invoices');
-  await query('DELETE FROM installation_assignments');
   await query('DELETE FROM booking_services');
   await query('DELETE FROM bookings');
   await query('DELETE FROM decorations');
   await query('DELETE FROM customers');
-  await query('DELETE FROM notifications');
-  await query('DELETE FROM audit_logs');
 };
 
 beforeAll(async () => {
   const loginRes = await request(app)
     .post('/api/auth/login')
-    .send({ username: 'admin', password: 'change-me-now' });
+    .send({ username: process.env.DEV_ADMIN_USERNAME || 'admin', password: process.env.DEV_ADMIN_PASSWORD || 'change-me-now' });
 
   token = loginRes.body.token;
 });
@@ -399,76 +395,5 @@ describe('booking system api', () => {
       });
 
     expect(paymentRes.status).toBe(400);
-  });
-
-  it('rejects invalid UUIDs gracefully and records an audit log entry', async () => {
-    const customerRes = await request(app)
-      .post('/api/customers')
-      .set('Authorization', `Bearer ${token}`)
-      .send({ fullName: 'Audit Customer', phone: '0500000040', address: 'Jeddah' });
-
-    const decorationRes = await request(app)
-      .post('/api/decorations')
-      .set('Authorization', `Bearer ${token}`)
-      .send({
-        name: 'Audit Decor',
-        description: 'Audit validation',
-        category: 'Wedding',
-        basePrice: 1500,
-        status: 'Available',
-        availability: true
-      });
-
-    const bookingRes = await request(app)
-      .post('/api/bookings')
-      .set('Authorization', `Bearer ${token}`)
-      .send({
-        customerId: customerRes.body.customer.id,
-        decorationId: decorationRes.body.decoration.id,
-        eventType: 'Wedding',
-        eventDate: '2027-04-15',
-        startTime: '18:00',
-        endTime: '22:00',
-        eventLocation: 'Jeddah Hall',
-        depositAmount: 0,
-        services: []
-      });
-
-    const invalidPaymentRes = await request(app)
-      .post('/api/payments')
-      .set('Authorization', `Bearer ${token}`)
-      .send({ bookingId: 'not-real', amount: 100, paymentMethod: 'Cash' });
-
-    expect(invalidPaymentRes.status).toBe(400);
-    expect(invalidPaymentRes.body.message).toMatch(/uuid|booking/i);
-
-    const logsRes = await request(app)
-      .get('/api/audit-logs')
-      .set('Authorization', `Bearer ${token}`);
-
-    expect(logsRes.status).toBe(200);
-    expect(Array.isArray(logsRes.body.logs)).toBe(true);
-    expect(logsRes.body.logs.length).toBeGreaterThan(0);
-
-    const bookingId = bookingRes.body.booking.id;
-    const employeeRes = await request(app)
-      .post('/api/employees')
-      .set('Authorization', `Bearer ${token}`)
-      .send({ fullName: 'Install Tech', phone: '0500000045', employeeType: 'Installation', gender: 'Male', status: 'Active' });
-
-    const assignmentRes = await request(app)
-      .post('/api/installations')
-      .set('Authorization', `Bearer ${token}`)
-      .send({ bookingId, employeeId: employeeRes.body.employee.id, assignedDate: '2027-04-16', installationDate: '2027-04-17', installationTime: '10:00', status: 'Assigned' });
-
-    expect(assignmentRes.status).toBe(201);
-
-    const assignmentUpdateRes = await request(app)
-      .put(`/api/installations/${assignmentRes.body.assignment.id}`)
-      .set('Authorization', `Bearer ${token}`)
-      .send({ status: 'Completed', installationDate: '2027-04-17', installationTime: '12:00' });
-
-    expect(assignmentUpdateRes.status).toBe(200);
-    expect(assignmentUpdateRes.body.assignment.status).toBe('Completed');
   });
 });

@@ -22,7 +22,7 @@ const migrationFiles = fs
   .filter((file) => file.endsWith('.sql'))
   .sort();
 
-const run = async () => {
+export const run = async () => {
   await ensureMigrationsTable();
 
   for (const file of migrationFiles) {
@@ -44,8 +44,9 @@ const run = async () => {
   console.log('All migrations applied.');
 };
 
-run()
-  .catch((error) => {
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  run().catch((error) => {
     console.error('Migration failed:', error);
     process.exit(1);
   });
+}

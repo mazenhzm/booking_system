@@ -9,9 +9,9 @@
     "client:dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "server": "node backend/server.js",
-    "test": "cross-env ALLOW_PG_MEM=false vitest run",
-    "test:unit": "cross-env ALLOW_PG_MEM=false vitest run",
-    "test:integration": "node -e \"if (!process.env.DATABASE_URL) { console.error('DATABASE_URL is required for integration tests.'); process.exit(1); }\" && vitest run",
+    "test": "node backend/tests/runTests.js",
+    "test:unit": "node backend/tests/runTests.js",
+    "test:integration": "node backend/tests/runTests.js",
     "db:migrate": "node backend/db/runMigrations.js",
     "db:seed": "node backend/db/seed.js",
     "db:reset": "node backend/db/reset.js"

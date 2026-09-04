@@ -1,7 +1,7 @@
 import express from 'express';
 import { randomUUID } from 'crypto';
 import { getDatabase, sqlAll, sqlGet, sqlRun } from '../db/database.js';
-import { requirePermission, requireRole } from '../middleware/authMiddleware.js';
+import { requireRole } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -13,7 +13,7 @@ const normalizeCustomerPayload = (payload) => ({
   notes: payload.notes,
 });
 
-router.get('/', requirePermission('customers:read'), async (req, res) => {
+router.get('/', async (req, res) => {
   const { search = '' } = req.query;
   const rows = await sqlAll(`
     SELECT * FROM customers
@@ -46,7 +46,7 @@ router.post('/', requireRole('Super Admin', 'Manager', 'Booking Employee'), asyn
   return res.status(201).json({ customer });
 });
 
-router.get('/:id', requirePermission('customers:read'), async (req, res) => {
+router.get('/:id', async (req, res) => {
   const customer = await sqlGet('SELECT * FROM customers WHERE id = ?', [req.params.id]);
   if (!customer) {
     return res.status(404).json({ message: 'Customer not found.' });
@@ -73,16 +73,6 @@ router.put('/:id', requireRole('Super Admin', 'Manager', 'Booking Employee'), as
 
   const customer = await sqlGet('SELECT * FROM customers WHERE id = ?', [req.params.id]);
   return res.json({ customer });
-});
-
-router.delete('/:id', requireRole('Super Admin', 'Manager'), async (req, res) => {
-  const existing = await sqlGet('SELECT * FROM customers WHERE id = ?', [req.params.id]);
-  if (!existing) {
-    return res.status(404).json({ message: 'Customer not found.' });
-  }
-
-  await sqlRun('DELETE FROM customers WHERE id = ?', [req.params.id]);
-  return res.json({ message: 'Customer deleted successfully.' });
 });
 
 export default router;
